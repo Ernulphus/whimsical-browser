@@ -75,14 +75,23 @@ def request (url):
     return headers, body
 
 def show(body):
-    """ Show all text in the page (strips HTML tags) """
+    """ Show all text in the page (strips HTML tags and head section) """
     in_angle = False
+    in_body = False
+    tag_name = ""
     for c in body:
         if c == '<':
             in_angle = True
+            tag_name = ""
         elif c == '>':
             in_angle = False
-        elif not in_angle:
+            if tag_name == "body":
+                in_body = True
+            elif tag_name == "/body": # Just to ignore footers
+                in_body = False
+        elif in_angle:
+            tag_name += c
+        elif not in_angle and in_body:
             print(c, end='')
 
 def load(url):
