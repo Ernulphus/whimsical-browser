@@ -24,7 +24,7 @@ def request (url):
             'Host: {}\r\n\r\n'.format(host).encode('utf8'))
     # \r is a carriage return - doubled at the end for the empty line to finish request
 
-    print(request) # 47 -> number of bytes sent out
+    # print(request) # 47 -> number of bytes sent out
 
     # makefile() is like open() but from a socket
     response = s.makefile('r', encoding='utf8', newline='\r\n') # Note: shouldn't hardcode utf8
@@ -41,11 +41,12 @@ def request (url):
     # Populate a dictionary with the response headers
     headers = {}
     while True:
-        line = response.resdline()
+        line = response.readline()
         if line == '\r\n': break
         header, value = line.split(':', 1)
         headers[header.lower()] = value.strip()
 
+    # Don't handle compressed pages
     assert 'transfer-encoding' not in headers
     assert 'content-encoding' not in headers
 
@@ -53,3 +54,24 @@ def request (url):
     s.close # Wrap up the socket
 
     return headers, body
+
+def show(body):
+    """ Show all text in the page (strips HTML tags) """
+    in_angle = False
+    for c in body:
+        if c == '<':
+            in_angle = True
+        elif c == '>':
+            in_angle = False
+        elif not in_angle:
+            print(c, end='')
+
+def load(url):
+    """ Load a web page by requesting it and displaying the HTML response. """
+    headers, body = request(url)
+    show(body)
+
+# If in main, load command line argument url
+if __name__ == '__main__':
+    import sys
+    load(sys.argv[1])
