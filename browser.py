@@ -78,9 +78,25 @@ def show(body):
     """ Show all text in the page (strips HTML tags and head section) """
     in_angle = False
     in_body = False
-    tag_name = ""
+    tag_name = "" # Gets populated as a tag name is scanned
+    entity = False # Becomes true when an & is read, so that next char determines the symbol
     for c in body:
-        if c == '<':
+        if entity = True:
+            # Kind of a hack, should really check next 2 characters
+            # This strat will collide on &amp and &apos entities (they both start with a)
+            # Not to mention that this ignores entity numbers
+            if c == 'l': 
+                print('<', end='')
+            elif c == 'g':
+                print('>', end='')
+            elif c == 'q':
+                print('"', end='')
+            elif c == "a": # Choosing apostrophe over amp
+                print("'", end='')
+            elif c == 'c': # Also choosing copyright over cent
+                print('©', end='')
+            entity = False
+        elif c == '<':
             in_angle = True
             tag_name = ""
         elif c == '>':
@@ -92,7 +108,11 @@ def show(body):
         elif in_angle:
             tag_name += c
         elif not in_angle and in_body:
+            if c == '&':
+                entity = True
+                continue    
             print(c, end='')
+            
 
 def load(url):
     """ Load a web page by requesting it and displaying the HTML response. """
