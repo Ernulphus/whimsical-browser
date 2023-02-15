@@ -1,10 +1,16 @@
-import socket 
+import socket
+import ssl
 
 # 
 def request (url):
     """Open a socket, send an HTTP request to url, and return head and body of response."""
-    assert url.startswith("http://")
-    url = url[len("http://"):]
+    scheme, url = url.split("://", 1)
+    assert scheme in ['http', 'https'], \
+        "Unknown scheme {}".format(scheme)
+
+    # Old code for only http
+    # assert url.startswith("http://")
+    # url = url[len("http://"):]
 
     host, path = url.split('/', 1)
     path = '/' + path
@@ -17,11 +23,24 @@ def request (url):
         proto=socket.IPPROTO_TCP,   # protocol - IP/TCP (rather than QUIC eg)
     )
 
-    s.connect((host,80)) # Connect to host on port 80
+    port = 80 if scheme == 'http' else 443 # Typical port 80 for http and 443 for https
+    if ':' in host: # Check for custom ports, like example.org:8080/
+        host, port = host.split(':', 1)
+        port = int(port)
+    s.connect((host,port)) # Connect to host on designated port
+
+    # Wrap socket in secure context
+    if scheme == 'https':
+        ctx = ssl.create_default_context()
+        s = ctx.wrap_socket(s, server_hostname=host)
 
     # encode() turns the string into a bytestream [decode() turns it back]
     request = s.send('GET {} HTTP/1.0\r\n'.format(path).encode('utf8') + \
-            'Host: {}\r\n\r\n'.format(host).encode('utf8'))
+            encodeHeaders({ # Exercise 1.1 Make it easy to add headers
+            'Host':host,
+            'Connection':'close', 
+            'User-Agent':"Bony00's Whimsical Browsing Machine",
+            }))
     # \r is a carriage return - doubled at the end for the empty line to finish request
 
     # print(request) # 47 -> number of bytes sent out
@@ -70,6 +89,16 @@ def load(url):
     """ Load a web page by requesting it and displaying the HTML response. """
     headers, body = request(url)
     show(body)
+
+def encodeHeaders(headers):
+    """ Exercise 1: Make it easy to add further headers """
+    # headers should be a dictionary
+    finalString = ""
+    for key in headers:
+        finalString += key + ": " + headers[key] + '\r\n'
+    finalString += "\r\n"
+    return finalString.encode('utf8')
+
 
 # If in main, load command line argument url
 if __name__ == '__main__':
