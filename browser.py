@@ -5,7 +5,7 @@ import ssl
 def request (url):
     """Open a socket, send an HTTP request to url, and return head and body of response."""
     scheme, url = url.split("://", 1)
-    assert scheme in ['http', 'https'], \
+    assert scheme in ['http', 'https', 'file', 'data'], \
         "Unknown scheme {}".format(scheme)
 
     # Old code for only http
@@ -41,7 +41,6 @@ def request (url):
             'Connection':'close', 
             'User-Agent':"Bony00's Whimsical Browsing Machine",
             }))
-    # \r is a carriage return - doubled at the end for the empty line to finish request
 
     # print(request) # 47 -> number of bytes sent out
 
@@ -79,23 +78,23 @@ def show(body):
     in_angle = False
     in_body = False
     tag_name = "" # Gets populated as a tag name is scanned
-    entity = False # Becomes true when an & is read, so that next char determines the symbol
+    entity = 0 # Becomes true when an & is read, so that next char determines the symbol
+    entity_name = ""
     for c in body:
-        if entity = True:
-            # Kind of a hack, should really check next 2 characters
-            # This strat will collide on &amp and &apos entities (they both start with a)
-            # Not to mention that this ignores entity numbers
-            if c == 'l': 
-                print('<', end='')
-            elif c == 'g':
-                print('>', end='')
-            elif c == 'q':
-                print('"', end='')
-            elif c == "a": # Choosing apostrophe over amp
-                print("'", end='')
-            elif c == 'c': # Also choosing copyright over cent
-                print('©', end='')
-            entity = False
+        if entity = 1:
+            entity_name += c
+            entity = 2
+        elif entity = 2:
+            entity_name += c
+            print({ # This is better than before but still messes up on all entities beyond <>
+                'lt':'<', 'gt':'>',
+                'qu':'"', 'ap':"'",
+                'co':'©', 're':'®',
+                'nb':' ',
+                'ce':'¢', 'po':'£', 'ye':'¥', 'eu':'€',
+            }[entity_name], end='')
+            entity_name = ''
+            entity = 0
         elif c == '<':
             in_angle = True
             tag_name = ""
@@ -109,7 +108,7 @@ def show(body):
             tag_name += c
         elif not in_angle and in_body:
             if c == '&':
-                entity = True
+                entity = 1
                 continue    
             print(c, end='')
             
@@ -125,9 +124,9 @@ def encodeHeaders(headers):
     finalString = ""
     for key in headers:
         finalString += key + ": " + headers[key] + '\r\n'
-    finalString += "\r\n"
+    finalString += "\r\n" 
     return finalString.encode('utf8')
-
+    # \r is a carriage return - doubled at the end for the empty line to finish request
 
 # If in main, load command line argument url
 if __name__ == '__main__':
