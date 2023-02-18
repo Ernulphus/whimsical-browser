@@ -74,6 +74,14 @@ def request (url):
     return headers, body
 
 def show(body):
+    accepted_entities = {
+                    'lt':'<', 'gt':'>',
+                    'qu':'"', 'ap':"'",
+                    'co':'©', 're':'®',
+                    'nb':' ', 'am':'&',
+                    'ce':'¢', 'po':'£', 
+                    'ye':'¥', 'eu':'€',
+                }
     """ Show all text in the page (strips HTML tags and head section) """
     in_angle = False
     in_body = False
@@ -81,31 +89,29 @@ def show(body):
     entity = 0 # Becomes true when an & is read, so that next char determines the symbol
     entity_name = ""
     for c in body:
-        if entity = 1:
+        # Entity handling
+        if entity == 1:
             entity_name += c
             entity = 2
-        elif entity = 2:
+        elif entity == 2:
             entity_name += c
-            print({ # This is better than before but still messes up on all entities beyond <>
-                'lt':'<', 'gt':'>',
-                'qu':'"', 'ap':"'",
-                'co':'©', 're':'®',
-                'nb':' ',
-                'ce':'¢', 'po':'£', 'ye':'¥', 'eu':'€',
-            }[entity_name], end='')
+            if entity_name in accepted_entities:
+                print(accepted_entities[entity_name], end='')
             entity_name = ''
             entity = 0
+        # End entity handling
+        # Tag filtering
         elif c == '<':
             in_angle = True
             tag_name = ""
         elif c == '>':
             in_angle = False
-            if tag_name == "body":
+            if "body" in tag_name: # Ignore header
                 in_body = True
-            elif tag_name == "/body": # Just to ignore footers
+            elif "/body" in tag_name: # Ignore footer
                 in_body = False
         elif in_angle:
-            tag_name += c
+            tag_name += c # Note: also gets tag attributes
         elif not in_angle and in_body:
             if c == '&':
                 entity = 1
