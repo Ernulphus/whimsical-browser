@@ -1,5 +1,27 @@
 import socket
 import ssl
+import tkinter
+
+WIDTH, HEIGHT = 800, 600 # Super Video Graphics Array size
+
+class Browser:
+    def __init__(self):
+        self.window = tkinter.Tk() # Create a window
+        self.canvas = tkinter.Canvas(
+            self.window,
+            width=WIDTH,
+            HEIGHT=HEIGHT
+        )
+        self.canvas.pack() # Position canvas inside window
+    
+    def load(self, url):
+        """ Load a web page by requesting it and displaying the HTML response. """
+        self.canvas.create_rectangle(10, 20, 400, 300)
+        self.canvas.create_oval(100, 100, 150, 150)
+        self.canvas.create_text(200, 150, text="Hi!")
+        headers, body = request(url)
+        show(body)
+
 
 # 
 def request (url):
@@ -118,12 +140,6 @@ def show(body):
                 continue    
             print(c, end='')
             
-
-def load(url):
-    """ Load a web page by requesting it and displaying the HTML response. """
-    headers, body = request(url)
-    show(body)
-
 def encodeHeaders(headers):
     """ Exercise 1: Make it easy to add further headers """
     # headers should be a dictionary
@@ -137,4 +153,5 @@ def encodeHeaders(headers):
 # If in main, load command line argument url
 if __name__ == '__main__':
     import sys
-    load(sys.argv[1])
+    Browser().load(sys.argv[1]) # Create broser and load with command line url
+    tkinter.mainloop() # Start the process of redrawing the screen
