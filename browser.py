@@ -3,6 +3,8 @@ import ssl
 import tkinter
 
 WIDTH, HEIGHT = 800, 600 # Super Video Graphics Array size
+HSTEP, VSTEP = 13, 18 # To be replaced with specific font metrics
+
 
 class Browser:
     def __init__(self):
@@ -16,14 +18,19 @@ class Browser:
     
     def load(self, url):
         """ Load a web page by requesting it and displaying the HTML response. """
-        self.canvas.create_rectangle(10, 20, 400, 300) # x,y top left corner and x,y bottom right
-        self.canvas.create_oval(100, 100, 150, 150) # oval fits rectangle defined by points
-        self.canvas.create_text(200, 150, text="Welcome!") # Justify left by default
+        # self.canvas.create_rectangle(10, 20, 400, 300) # x,y top left corner and x,y bottom right
+        # self.canvas.create_oval(100, 100, 150, 150) # oval fits rectangle defined by points
+        # self.canvas.create_text(200, 150, text="Welcome!") # Justify left by default
         headers, body = request(url)
+        cursor_x, cursor_y = HSTEP, VSTEP
+
         text = lex(body)
         for c in text:
-            self.canvas.create_text(100,100, text=c)
-
+            self.canvas.create_text(cursor_x, cursor_y, text=c)
+            cursor_x += HSTEP
+            if cursor_x >= WIDTH - HSTEP:
+                cursor_x = HSTEP
+                cursor_y += VSTEP
 
 # 
 def request (url):
