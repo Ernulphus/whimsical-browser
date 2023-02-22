@@ -10,17 +10,19 @@ class Browser:
         self.canvas = tkinter.Canvas(
             self.window,
             width=WIDTH,
-            HEIGHT=HEIGHT
+            height=HEIGHT
         )
         self.canvas.pack() # Position canvas inside window
     
     def load(self, url):
         """ Load a web page by requesting it and displaying the HTML response. """
-        self.canvas.create_rectangle(10, 20, 400, 300)
-        self.canvas.create_oval(100, 100, 150, 150)
-        self.canvas.create_text(200, 150, text="Hi!")
+        self.canvas.create_rectangle(10, 20, 400, 300) # x,y top left corner and x,y bottom right
+        self.canvas.create_oval(100, 100, 150, 150) # oval fits rectangle defined by points
+        self.canvas.create_text(200, 150, text="Welcome!") # Justify left by default
         headers, body = request(url)
-        show(body)
+        text = lex(body)
+        for c in text:
+            self.canvas.create_text(100,100, text=c)
 
 
 # 
@@ -95,7 +97,8 @@ def request (url):
 
     return headers, body
 
-def show(body):
+def lex(body):
+    text = ''
     accepted_entities = {
                     'lt':'<', 'gt':'>',
                     'qu':'"', 'ap':"'",
@@ -110,6 +113,7 @@ def show(body):
     tag_name = "" # Gets populated as a tag name is scanned
     entity = 0 # Becomes true when an & is read, so that next char determines the symbol
     entity_name = ""
+    # Loop to populate text with the web page (no tags)
     for c in body:
         # Entity handling
         if entity == 1:
@@ -118,7 +122,7 @@ def show(body):
         elif entity == 2:
             entity_name += c
             if entity_name in accepted_entities:
-                print(accepted_entities[entity_name], end='')
+                text += accepted_entities[entity_name]
             entity_name = ''
             entity = 0
         # End entity handling
@@ -131,14 +135,16 @@ def show(body):
             if "body" in tag_name: # Ignore header
                 in_body = True
             elif "/body" in tag_name: # Ignore footer
-                in_body = False
+                break
         elif in_angle:
             tag_name += c # Note: also gets tag attributes
         elif not in_angle and in_body:
-            if c == '&':
+            if c == '&': # Send loop into entity mode
                 entity = 1
                 continue    
-            print(c, end='')
+            text += c
+    # End loop
+    return text
             
 def encodeHeaders(headers):
     """ Exercise 1: Make it easy to add further headers """
