@@ -10,6 +10,7 @@ class Browser:
     def __init__(self):
         self.window = tkinter.Tk() # Create a window
         self.window.bind("<Down>", self.scrolldown)
+        self.window.bind("<Up>", self.scrollup)
         self.canvas = tkinter.Canvas(
             self.window,
             width=WIDTH,
@@ -37,6 +38,11 @@ class Browser:
 
     def scrolldown(self, e):
         self.scroll += SCROLL_STEP
+        self.draw()
+
+    def scrollup(self, e):
+        if self.scroll > -100:
+            self.scroll -= SCROLL_STEP
         self.draw()
 
 def request (url):
