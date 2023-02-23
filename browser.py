@@ -16,6 +16,7 @@ class Browser:
             width=WIDTH,
             height=HEIGHT
         )
+        self.window.bind("<Configure>", self.resize)
         self.canvas.pack() # Position canvas inside window
         self.scroll = 0
 
@@ -25,8 +26,8 @@ class Browser:
         # self.canvas.create_oval(100, 100, 150, 150) # oval fits rectangle defined by points
         # self.canvas.create_text(200, 150, text="Welcome!") # Justify left by default
         headers, body = request(url)
-        text = lex(body)
-        self.display_list = layout(text)
+        self.text = lex(body)
+        self.display_list = layout(self.text)
         self.draw()
 
     def draw(self):
@@ -43,6 +44,13 @@ class Browser:
     def scrollup(self, e):
         if self.scroll > -100:
             self.scroll -= SCROLL_STEP
+        self.draw()
+
+    def resize(self, e):
+        global WIDTH, HEIGHT
+        WIDTH, HEIGHT = e.width, e.height
+        self.canvas.pack(fill='both', expand=True)
+        self.display_list = layout(self.text)
         self.draw()
 
 def request (url):
