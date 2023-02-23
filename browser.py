@@ -16,21 +16,19 @@ class Browser:
         )
         self.canvas.pack() # Position canvas inside window
     
+    def draw(self):
+        for x, y, c in self.display_list:
+            self.canvas.create_text(x,y, text=c)
+
     def load(self, url):
         """ Load a web page by requesting it and displaying the HTML response. """
         # self.canvas.create_rectangle(10, 20, 400, 300) # x,y top left corner and x,y bottom right
         # self.canvas.create_oval(100, 100, 150, 150) # oval fits rectangle defined by points
         # self.canvas.create_text(200, 150, text="Welcome!") # Justify left by default
         headers, body = request(url)
-        cursor_x, cursor_y = HSTEP, VSTEP
-
         text = lex(body)
-        for c in text:
-            self.canvas.create_text(cursor_x, cursor_y, text=c)
-            cursor_x += HSTEP
-            if cursor_x >= WIDTH - HSTEP:
-                cursor_x = HSTEP
-                cursor_y += VSTEP
+        self.display_list = layout(text)
+        self.draw()
 
 def request (url):
     """Open a socket, send an HTTP request to url, and return head and body of response."""
@@ -104,10 +102,16 @@ def request (url):
     return headers, body
 
 def layout(text):
+    """Create a display list of the entire page layout."""
     display_list = []
     cursor_x, cursor_y = HSTEP, VSTEP
     for c in text:
         display_list.append((cursor_x, cursor_y, c))
+        cursor_x += HSTEP
+        if cursor_x >= WIDTH - HSTEP:
+            cursor_x = HSTEP
+            cursor_y += VSTEP
+    return display_list
 
 
 def lex(body):
