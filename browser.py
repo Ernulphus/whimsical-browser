@@ -32,7 +32,6 @@ class Browser:
                 cursor_x = HSTEP
                 cursor_y += VSTEP
 
-# 
 def request (url):
     """Open a socket, send an HTTP request to url, and return head and body of response."""
     scheme, url = url.split("://", 1)
@@ -104,34 +103,40 @@ def request (url):
 
     return headers, body
 
+def layout(text):
+    display_list = []
+    cursor_x, cursor_y = HSTEP, VSTEP
+    for c in text:
+        display_list.append((cursor_x, cursor_y, c))
+
+
 def lex(body):
     text = ''
     accepted_entities = {
                     'lt':'<', 'gt':'>',
-                    'qu':'"', 'ap':"'",
-                    'co':'©', 're':'®',
-                    'nb':' ', 'am':'&',
-                    'ce':'¢', 'po':'£', 
-                    'ye':'¥', 'eu':'€',
+                    'quot':'"', 'apos':"'",
+                    'copy':'©', 'reg':'®',
+                    'nbsp':' ', 'amp':'&',
+                    'cent':'¢', 'pound':'£', 
+                    'yen':'¥', 'euro':'€',
                 }
     """ Show all text in the page (strips HTML tags and head section) """
     in_angle = False
     in_body = False
     tag_name = "" # Gets populated as a tag name is scanned
-    entity = 0 # Becomes true when an & is read, so that next char determines the symbol
+    in_entity = False
     entity_name = ""
     # Loop to populate text with the web page (no tags)
     for c in body:
         # Entity handling
-        if entity == 1:
-            entity_name += c
-            entity = 2
-        elif entity == 2:
-            entity_name += c
-            if entity_name in accepted_entities:
-                text += accepted_entities[entity_name]
-            entity_name = ''
-            entity = 0
+        if in_entity:
+            if c == ';':
+                in_entity = False
+                if entity_name in accepted_entities:
+                    text += accepted_entities[entity_name]
+                entity_name = ''
+            else:
+                entity_name += c
         # End entity handling
         # Tag filtering
         elif c == '<':
@@ -147,7 +152,7 @@ def lex(body):
             tag_name += c # Note: also gets tag attributes
         elif not in_angle and in_body:
             if c == '&': # Send loop into entity mode
-                entity = 1
+                entity = True
                 continue    
             text += c
     # End loop
