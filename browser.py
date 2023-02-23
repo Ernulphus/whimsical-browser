@@ -4,21 +4,19 @@ import tkinter
 
 WIDTH, HEIGHT = 800, 600 # Super Video Graphics Array size
 HSTEP, VSTEP = 13, 18 # To be replaced with specific font metrics
-
+SCROLL_STEP = 100
 
 class Browser:
     def __init__(self):
         self.window = tkinter.Tk() # Create a window
+        self.window.bind("<Down>", self.scrolldown)
         self.canvas = tkinter.Canvas(
             self.window,
             width=WIDTH,
             height=HEIGHT
         )
         self.canvas.pack() # Position canvas inside window
-    
-    def draw(self):
-        for x, y, c in self.display_list:
-            self.canvas.create_text(x,y, text=c)
+        self.scroll = 0
 
     def load(self, url):
         """ Load a web page by requesting it and displaying the HTML response. """
@@ -28,6 +26,17 @@ class Browser:
         headers, body = request(url)
         text = lex(body)
         self.display_list = layout(text)
+        self.draw()
+
+    def draw(self):
+        self.canvas.delete("all")
+        for x, y, c in self.display_list:
+            if y > self.scroll + HEIGHT: continue # Don't draw characters that are below the viewport
+            if y + VSTEP < self.scroll: continue # Don't draw characters whose bottom edges are above the viewport
+            self.canvas.create_text(x,y - self.scroll, text=c)
+
+    def scrolldown(self, e):
+        self.scroll += SCROLL_STEP
         self.draw()
 
 def request (url):
@@ -112,7 +121,6 @@ def layout(text):
             cursor_x = HSTEP
             cursor_y += VSTEP
     return display_list
-
 
 def lex(body):
     text = ''
