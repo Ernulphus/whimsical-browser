@@ -21,12 +21,17 @@ class Browser:
         self.canvas.pack() # Position canvas inside window
         self.scroll = 0
         # Set a font (which in Tk has a set size, style, and weight)
-        self.bi_times = tkinter.font.Font(
+        self.times = tkinter.font.Font(
             family = "Times",
             size=16,
             weight="normal",
             slant="roman",
         )
+        self.font1 = tkinter.font.Font(family="Times", size=16)
+        self.font2 = tkinter.font.Font(family="Times", size=16, slant="italic")
+
+        # print(self.times.metrics())
+        # print(self.times.measure("Hi!"))
 
     def load(self, url):
         """ Load a web page by requesting it and displaying the HTML response. """
@@ -40,10 +45,15 @@ class Browser:
 
     def draw(self):
         self.canvas.delete("all")
+        # x, y = 200, 200 # Testing using different fonts
+        # self.canvas.create_text(x, y, text="Hello, ", font=self.font1, anchor='nw')
+        # x += self.font1.measure("Hello, ")
+        # self.canvas.create_text(x, y, text="world!", font=self.font2, anchor='nw')
+        
         for x, y, c in self.display_list:
             if y > self.scroll + HEIGHT: continue # Don't draw characters that are below the viewport
             if y + VSTEP < self.scroll: continue # Don't draw characters whose bottom edges are above the viewport
-            self.canvas.create_text(x,y - self.scroll, text=c, font=self.bi_times)
+            self.canvas.create_text(x,y - self.scroll, text=c, font=self.times, anchor='nw')
 
     def scrolldown(self, e):
         self.scroll += SCROLL_STEP
