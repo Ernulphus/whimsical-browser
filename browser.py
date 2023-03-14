@@ -1,7 +1,58 @@
 import socket
 import ssl
+import tkinter
 
-# 
+WIDTH, HEIGHT = 800, 600 # Super Video Graphics Array size
+HSTEP, VSTEP = 13, 18 # To be replaced with specific font metrics
+SCROLL_STEP = 100
+
+class Browser:
+    def __init__(self):
+        self.window = tkinter.Tk() # Create a window
+        self.window.bind("<Down>", self.scrolldown)
+        self.window.bind("<Up>", self.scrollup)
+        self.canvas = tkinter.Canvas(
+            self.window,
+            width=WIDTH,
+            height=HEIGHT
+        )
+        self.window.bind("<Configure>", self.resize)
+        self.canvas.pack() # Position canvas inside window
+        self.scroll = 0
+
+    def load(self, url):
+        """ Load a web page by requesting it and displaying the HTML response. """
+        # self.canvas.create_rectangle(10, 20, 400, 300) # x,y top left corner and x,y bottom right
+        # self.canvas.create_oval(100, 100, 150, 150) # oval fits rectangle defined by points
+        # self.canvas.create_text(200, 150, text="Welcome!") # Justify left by default
+        headers, body = request(url)
+        self.text = lex(body)
+        self.display_list = layout(self.text)
+        self.draw()
+
+    def draw(self):
+        self.canvas.delete("all")
+        for x, y, c in self.display_list:
+            if y > self.scroll + HEIGHT: continue # Don't draw characters that are below the viewport
+            if y + VSTEP < self.scroll: continue # Don't draw characters whose bottom edges are above the viewport
+            self.canvas.create_text(x,y - self.scroll, text=c)
+
+    def scrolldown(self, e):
+        self.scroll += SCROLL_STEP
+        self.draw()
+
+    def scrollup(self, e):
+        if self.scroll > -100:
+            self.scroll -= SCROLL_STEP
+        self.draw()
+
+    def resize(self, e):
+        global WIDTH, HEIGHT
+        WIDTH, HEIGHT = e.width, e.height
+        self.canvas.pack(fill='both', expand=True)
+        self.display_list = layout(self.text)
+        self.draw()
+
 def request (url):
     """Open a socket, send an HTTP request to url, and return head and body of response."""
     scheme, url = url.split("://", 1)
@@ -73,32 +124,45 @@ def request (url):
 
     return headers, body
 
-def show(body):
+def layout(text):
+    """Create a display list of the entire page layout."""
+    display_list = []
+    cursor_x, cursor_y = HSTEP, VSTEP
+    for c in text:
+        display_list.append((cursor_x, cursor_y, c))
+        cursor_x += HSTEP
+        if cursor_x >= WIDTH - HSTEP:
+            cursor_x = HSTEP
+            cursor_y += VSTEP
+    return display_list
+
+def lex(body):
+    text = ''
     accepted_entities = {
                     'lt':'<', 'gt':'>',
-                    'qu':'"', 'ap':"'",
-                    'co':'©', 're':'®',
-                    'nb':' ', 'am':'&',
-                    'ce':'¢', 'po':'£', 
-                    'ye':'¥', 'eu':'€',
+                    'quot':'"', 'apos':"'",
+                    'copy':'©', 'reg':'®',
+                    'nbsp':' ', 'amp':'&',
+                    'cent':'¢', 'pound':'£', 
+                    'yen':'¥', 'euro':'€',
                 }
     """ Show all text in the page (strips HTML tags and head section) """
     in_angle = False
     in_body = False
     tag_name = "" # Gets populated as a tag name is scanned
-    entity = 0 # Becomes true when an & is read, so that next char determines the symbol
+    in_entity = False
     entity_name = ""
+    # Loop to populate text with the web page (no tags)
     for c in body:
         # Entity handling
-        if entity == 1:
-            entity_name += c
-            entity = 2
-        elif entity == 2:
-            entity_name += c
-            if entity_name in accepted_entities:
-                print(accepted_entities[entity_name], end='')
-            entity_name = ''
-            entity = 0
+        if in_entity:
+            if c == ';':
+                in_entity = False
+                if entity_name in accepted_entities:
+                    text += accepted_entities[entity_name]
+                entity_name = ''
+            else:
+                entity_name += c
         # End entity handling
         # Tag filtering
         elif c == '<':
@@ -109,21 +173,17 @@ def show(body):
             if "body" in tag_name: # Ignore header
                 in_body = True
             elif "/body" in tag_name: # Ignore footer
-                in_body = False
+                break
         elif in_angle:
             tag_name += c # Note: also gets tag attributes
         elif not in_angle and in_body:
-            if c == '&':
-                entity = 1
+            if c == '&': # Send loop into entity mode
+                entity = True
                 continue    
-            print(c, end='')
+            text += c
+    # End loop
+    return text
             
-
-def load(url):
-    """ Load a web page by requesting it and displaying the HTML response. """
-    headers, body = request(url)
-    show(body)
-
 def encodeHeaders(headers):
     """ Exercise 1: Make it easy to add further headers """
     # headers should be a dictionary
@@ -137,4 +197,5 @@ def encodeHeaders(headers):
 # If in main, load command line argument url
 if __name__ == '__main__':
     import sys
-    load(sys.argv[1])
+    Browser().load(sys.argv[1]) # Create broser and load with command line url
+    tkinter.mainloop() # Start the process of redrawing the screen
