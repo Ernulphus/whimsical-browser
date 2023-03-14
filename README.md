@@ -16,4 +16,14 @@ This textbook can be found online [here](https://browser.engineering/index.html)
 ## Completed Exercises
 - HTTP/1.1
 - Body tag
-- Entities
+- Entities  
+  
+# Chapter 2
+## Exercises Todo
+- Line breaks
+- Mousewheel
+- Emoji
+- Zoom
+## Completed Exercises
+- Resizing
+- 

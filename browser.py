@@ -1,6 +1,7 @@
 import socket
 import ssl
 import tkinter
+import tkinter.font
 
 WIDTH, HEIGHT = 800, 600 # Super Video Graphics Array size
 HSTEP, VSTEP = 13, 18 # To be replaced with specific font metrics
@@ -19,6 +20,13 @@ class Browser:
         self.window.bind("<Configure>", self.resize)
         self.canvas.pack() # Position canvas inside window
         self.scroll = 0
+        # Set a font (which in Tk has a set size, style, and weight)
+        self.bi_times = tkinter.font.Font(
+            family = "Times",
+            size=16,
+            weight="normal",
+            slant="roman",
+        )
 
     def load(self, url):
         """ Load a web page by requesting it and displaying the HTML response. """
@@ -35,7 +43,7 @@ class Browser:
         for x, y, c in self.display_list:
             if y > self.scroll + HEIGHT: continue # Don't draw characters that are below the viewport
             if y + VSTEP < self.scroll: continue # Don't draw characters whose bottom edges are above the viewport
-            self.canvas.create_text(x,y - self.scroll, text=c)
+            self.canvas.create_text(x,y - self.scroll, text=c, font=self.bi_times)
 
     def scrolldown(self, e):
         self.scroll += SCROLL_STEP
