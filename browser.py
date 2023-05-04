@@ -20,6 +20,7 @@ class Browser:
         self.window.bind("<Configure>", self.resize)
         self.canvas.pack() # Position canvas inside window
         self.scroll = 0
+        self.tokens = []
         # Set a font (which in Tk has a set size, style, and weight)
         self.times = tkinter.font.Font(
             family = "Times",
@@ -39,8 +40,8 @@ class Browser:
         # self.canvas.create_oval(100, 100, 150, 150) # oval fits rectangle defined by points
         # self.canvas.create_text(200, 150, text="Welcome!") # Justify left by default
         headers, body = request(url)
-        self.text = lex(body)
-        self.display_list = layout(self.text)
+        self.tokens = lex(body)
+        self.display_list = Layout(self.tokens).display_list
         self.draw()
 
     def draw(self):
@@ -68,7 +69,7 @@ class Browser:
         global WIDTH, HEIGHT
         WIDTH, HEIGHT = e.width, e.height
         self.canvas.pack(fill='both', expand=True)
-        self.display_list = layout(self.text)
+        self.display_list = Layout(self.tokens).display_list
         self.draw()
 
 class Text:
@@ -150,28 +151,50 @@ def request (url):
 
     return headers, body
 
-def layout(tokens):
-    """Create a display list of the entire page layout."""
-    display_list = []
-    weight = "normal"
-    style = "roman"
-    cursor_x, cursor_y = HSTEP, VSTEP
-    for tok in tokens:
-        font = tkinter.font.Font(family="Times", size=16, weight = weight, slant = style)
-        if isinstance(tok, Text):
-            for word in tok.text.split():
-                w = font.measure(word)
-                if cursor_x + w >= WIDTH - HSTEP:
-                    cursor_x = HSTEP
-                    cursor_y += font.metrics("linespace") * 1.25
-                display_list.append((cursor_x, cursor_y, word, font))
-                cursor_x += w + font.measure(" ")
-        elif tok.tag == "i": style = "italic"
-        elif tok.tag == "/i": style = "roman"
-        elif tok.tag == "b": weight = "bold"
-        elif tok.tag == "/b": weight = "normal"
+class Layout:
+    """A display list of the entire page layout."""
+    def __init__(self, tokens):
+        self.weight = "normal"
+        self.style = "roman"
+        self.size = 16
+        self.cursor_x, self.cursor_y = HSTEP, VSTEP
 
-    return display_list
+        self.display_list = []
+        for tok in tokens:
+            if isinstance(tok, Text):
+                self.text(tok)
+            else: 
+                self.tag(tok)
+
+    def tag(self, tok):
+        if tok.tag == "i": self.style = "italic"
+        elif tok.tag == "/i": self.style = "roman"
+        elif tok.tag == "b": self.weight = "bold"
+        elif tok.tag == "/b": self.weight = "normal"
+        elif tok.tag == "small": self.size -= 2
+        elif tok.tag == "/small": self.size += 2
+        elif tok.tag == "big": self.size += 4
+        elif tok.tag == "/big": self.size -= 4
+        elif tok.tag == "h1":
+            self.size += 8
+            self.weight = "bold"
+        elif tok.tag == "/h1":
+            self.size -= 8
+            self.weight = "normal"
+
+    def text(self, tok):
+        font = tkinter.font.Font(family="Times", 
+                                 size = self.size, 
+                                 weight = self.weight, 
+                                 slant = self.style)
+        
+        for word in tok.text.split():
+            w = font.measure(word)
+            if self.cursor_x + w >= WIDTH - HSTEP:
+                self.cursor_x = HSTEP
+                self.cursor_y += font.metrics("linespace") * 1.25
+            self.display_list.append((self.cursor_x, self.cursor_y, word, font))
+            self.cursor_x += w + font.measure(" ")
 
 def lex(body):
     out = []
