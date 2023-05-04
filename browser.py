@@ -158,13 +158,15 @@ class Layout:
         self.style = "roman"
         self.size = 16
         self.cursor_x, self.cursor_y = HSTEP, VSTEP
-
+        
+        self.line = []
         self.display_list = []
         for tok in tokens:
             if isinstance(tok, Text):
                 self.text(tok)
             else: 
                 self.tag(tok)
+        self.flush()
 
     def tag(self, tok):
         if tok.tag == "i": self.style = "italic"
@@ -175,12 +177,18 @@ class Layout:
         elif tok.tag == "/small": self.size += 2
         elif tok.tag == "big": self.size += 4
         elif tok.tag == "/big": self.size -= 4
+        elif tok.tag == "br" or tok.tag == "/br": self.flush()
         elif tok.tag == "h1":
             self.size += 8
             self.weight = "bold"
         elif tok.tag == "/h1":
             self.size -= 8
             self.weight = "normal"
+            self.flush()
+            self.cursor_y += VSTEP # Small gap after header
+        elif tok.tag == "/p":
+            self.flush()
+            self.cursor_y += VSTEP # Small gap btwn paragraphs
 
     def text(self, tok):
         font = tkinter.font.Font(family="Times", 
@@ -191,10 +199,22 @@ class Layout:
         for word in tok.text.split():
             w = font.measure(word)
             if self.cursor_x + w >= WIDTH - HSTEP:
-                self.cursor_x = HSTEP
-                self.cursor_y += font.metrics("linespace") * 1.25
-            self.display_list.append((self.cursor_x, self.cursor_y, word, font))
+                self.flush()
+            self.line.append((self.cursor_x, word, font))
             self.cursor_x += w + font.measure(" ")
+
+    def flush(self):
+        if not self.line: return
+        metrics = [font.metrics() for x, word, font in self.line]
+        max_ascent = max([metric["ascent"] for metric in metrics])
+        baseline = self.cursor_y + (1.25 * max_ascent) # Should really be 1.125 above and below
+        for x, word, font in self.line:
+            y = baseline - font.metrics("ascent")
+            self.display_list.append((x, y, word, font))
+        self.cursor_x = HSTEP
+        self.line = []
+        max_descent = max([metric["descent"] for metric in metrics])
+        self.cursor_y = baseline + (1.25 * max_descent)
 
 def lex(body):
     out = []
