@@ -7,6 +7,8 @@ WIDTH, HEIGHT = 800, 600 # Super Video Graphics Array size
 HSTEP, VSTEP = 13, 18 # To be replaced with specific font metrics
 SCROLL_STEP = 100
 
+FONTS = {}
+
 class Browser:
     def __init__(self):
         self.window = tkinter.Tk() # Create a window
@@ -191,10 +193,7 @@ class Layout:
             self.cursor_y += VSTEP # Small gap btwn paragraphs
 
     def text(self, tok):
-        font = tkinter.font.Font(family="Times", 
-                                 size = self.size, 
-                                 weight = self.weight, 
-                                 slant = self.style)
+        font = get_font(self.size, self.weight, self.style)
         
         for word in tok.text.split():
             w = font.measure(word)
@@ -277,6 +276,13 @@ def encodeHeaders(headers):
     finalString += "\r\n" 
     return finalString.encode('utf8')
     # \r is a carriage return - doubled at the end for the empty line to finish request
+
+def get_font(size, weight, slant):
+    key = (size, weight, slant)
+    if key not in FONTS:
+        font = tkinter.font.Font(size=size, weight=weight, slant=slant)
+        FONTS[key] = font
+    return FONTS[key]
 
 # If in main, load command line argument url
 if __name__ == '__main__':
