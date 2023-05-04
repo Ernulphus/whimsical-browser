@@ -75,12 +75,81 @@ class Browser:
         self.draw()
 
 class Text:
-    def __init__(self, text):
+    def __init__(self, text, parent):
         self.text = text
+        self.children = []
+        self.parent = parent
 
-class Tag:
-    def __init__(self, tag):
+class Element:
+    def __init__(self, tag, parent):
         self.tag = tag
+        self.children = []
+        self.parent = parent
+
+class HTMLParser:
+    def __init__(self, body):
+        self.body = body
+        self.unfinished = []
+
+    def parse(self):
+        text = ''
+        accepted_entities = {
+                        'lt':'<', 'gt':'>',
+                        'quot':'"', 'apos':"'",
+                        'copy':'©', 'reg':'®',
+                        'nbsp':' ', 'amp':'&',
+                        'cent':'¢', 'pound':'£', 
+                        'yen':'¥', 'euro':'€',
+                    }
+        """ Show all text in the page (strips HTML tags and head section) """
+        in_angle = False
+        in_body = False
+        tag_name = "" # Gets populated as a tag name is scanned
+        in_entity = False
+        entity_name = ""
+        # Loop to populate text with the web page (no tags)
+        for c in body:
+            # Entity handling
+            if in_entity:
+                if c == ';':
+                    in_entity = False
+                    if entity_name in accepted_entities:
+                        text += accepted_entities[entity_name]
+                    entity_name = ''
+                else:
+                    entity_name += c
+            # End entity handling
+            # Tag filtering
+            elif c == '<':
+                in_angle = True
+                if text: self.add_text(text)
+                text = ""
+                tag_name = ""
+            elif c == '>':
+                in_angle = False
+                if "body" in tag_name: # Ignore header
+                    in_body = True
+                elif "/body" in tag_name: # Ignore footer
+                    break
+                self.add_tag(tag_name)
+            elif in_angle:
+                tag_name += c # Note: also gets tag attributes
+            elif not in_angle and in_body:
+                if c == '&': # Send loop into entity mode
+                    entity = True
+                    continue    
+                text += c
+        # End loop
+        return self.finish()
+    
+    def add_text():
+        pass
+    def add_tag():
+        pass
+    def finis():
+        pass
+
+    
 
 def request (url):
     """Open a socket, send an HTTP request to url, and return head and body of response."""
@@ -214,58 +283,6 @@ class Layout:
         self.line = []
         max_descent = max([metric["descent"] for metric in metrics])
         self.cursor_y = baseline + (1.25 * max_descent)
-
-def lex(body):
-    out = []
-    text = ''
-    accepted_entities = {
-                    'lt':'<', 'gt':'>',
-                    'quot':'"', 'apos':"'",
-                    'copy':'©', 'reg':'®',
-                    'nbsp':' ', 'amp':'&',
-                    'cent':'¢', 'pound':'£', 
-                    'yen':'¥', 'euro':'€',
-                }
-    """ Show all text in the page (strips HTML tags and head section) """
-    in_angle = False
-    in_body = False
-    tag_name = "" # Gets populated as a tag name is scanned
-    in_entity = False
-    entity_name = ""
-    # Loop to populate text with the web page (no tags)
-    for c in body:
-        # Entity handling
-        if in_entity:
-            if c == ';':
-                in_entity = False
-                if entity_name in accepted_entities:
-                    text += accepted_entities[entity_name]
-                entity_name = ''
-            else:
-                entity_name += c
-        # End entity handling
-        # Tag filtering
-        elif c == '<':
-            in_angle = True
-            if text: out.append(Text(text))
-            text = ""
-            tag_name = ""
-        elif c == '>':
-            in_angle = False
-            if "body" in tag_name: # Ignore header
-                in_body = True
-            elif "/body" in tag_name: # Ignore footer
-                break
-            out.append(Tag(tag_name))
-        elif in_angle:
-            tag_name += c # Note: also gets tag attributes
-        elif not in_angle and in_body:
-            if c == '&': # Send loop into entity mode
-                entity = True
-                continue    
-            text += c
-    # End loop
-    return out
             
 def encodeHeaders(headers):
     """ Exercise 1: Make it easy to add further headers """
