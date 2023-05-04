@@ -50,10 +50,10 @@ class Browser:
         # x += self.font1.measure("Hello, ")
         # self.canvas.create_text(x, y, text="world!", font=self.font2, anchor='nw')
         
-        for x, y, c in self.display_list:
+        for x, y, c, f in self.display_list:
             if y > self.scroll + HEIGHT: continue # Don't draw characters that are below the viewport
             if y + VSTEP < self.scroll: continue # Don't draw characters whose bottom edges are above the viewport
-            self.canvas.create_text(x,y - self.scroll, text=c, font=self.times, anchor='nw')
+            self.canvas.create_text(x,y - self.scroll, text=c, font=f, anchor='nw')
 
     def scrolldown(self, e):
         self.scroll += SCROLL_STEP
@@ -70,6 +70,14 @@ class Browser:
         self.canvas.pack(fill='both', expand=True)
         self.display_list = layout(self.text)
         self.draw()
+
+class Text:
+    def __init__(self, text):
+        self.text = text
+
+class Tag:
+    def __init__(self, tag):
+        self.tag = tag
 
 def request (url):
     """Open a socket, send an HTTP request to url, and return head and body of response."""
@@ -142,19 +150,31 @@ def request (url):
 
     return headers, body
 
-def layout(text):
+def layout(tokens):
     """Create a display list of the entire page layout."""
     display_list = []
+    weight = "normal"
+    style = "roman"
     cursor_x, cursor_y = HSTEP, VSTEP
-    for c in text:
-        display_list.append((cursor_x, cursor_y, c))
-        cursor_x += HSTEP
-        if cursor_x >= WIDTH - HSTEP:
-            cursor_x = HSTEP
-            cursor_y += VSTEP
+    for tok in tokens:
+        font = tkinter.font.Font(family="Times", size=16, weight = weight, slant = style)
+        if isinstance(tok, Text):
+            for word in tok.text.split():
+                w = font.measure(word)
+                if cursor_x + w >= WIDTH - HSTEP:
+                    cursor_x = HSTEP
+                    cursor_y += font.metrics("linespace") * 1.25
+                display_list.append((cursor_x, cursor_y, word, font))
+                cursor_x += w + font.measure(" ")
+        elif tok.tag == "i": style = "italic"
+        elif tok.tag == "/i": style = "roman"
+        elif tok.tag == "b": weight = "bold"
+        elif tok.tag == "/b": weight = "normal"
+
     return display_list
 
 def lex(body):
+    out = []
     text = ''
     accepted_entities = {
                     'lt':'<', 'gt':'>',
@@ -185,6 +205,8 @@ def lex(body):
         # Tag filtering
         elif c == '<':
             in_angle = True
+            if text: out.append(Text(text))
+            text = ""
             tag_name = ""
         elif c == '>':
             in_angle = False
@@ -192,6 +214,7 @@ def lex(body):
                 in_body = True
             elif "/body" in tag_name: # Ignore footer
                 break
+            out.append(Tag(tag_name))
         elif in_angle:
             tag_name += c # Note: also gets tag attributes
         elif not in_angle and in_body:
@@ -200,7 +223,7 @@ def lex(body):
                 continue    
             text += c
     # End loop
-    return text
+    return out
             
 def encodeHeaders(headers):
     """ Exercise 1: Make it easy to add further headers """
@@ -215,5 +238,5 @@ def encodeHeaders(headers):
 # If in main, load command line argument url
 if __name__ == '__main__':
     import sys
-    Browser().load(sys.argv[1]) # Create broser and load with command line url
+    Browser().load(sys.argv[1]) # Create browser and load with command line url
     tkinter.mainloop() # Start the process of redrawing the screen
