@@ -26,4 +26,12 @@ This textbook can be found online [here](https://browser.engineering/index.html)
 - Zoom
 ## Completed Exercises
 - Resizing
-- 
+
+# Chapter 3
+## Exercises Todo
+- Centered Text
+- Superscripts
+- Soft hyphens
+- Small caps
+- Preformatted text
+## Completed Exercises
