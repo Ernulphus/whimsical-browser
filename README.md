@@ -34,4 +34,11 @@ This textbook can be found online [here](https://browser.engineering/index.html)
 - Soft hyphens
 - Small caps
 - Preformatted text
-## Completed Exercises
+
+# Chapter 4
+## Exercises Todo
+- Comments
+- Paragraphs
+- Scripts
+- Quoted attributes
+- Syntax Highlighting
