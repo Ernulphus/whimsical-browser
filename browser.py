@@ -108,7 +108,7 @@ class HTMLParser:
         in_entity = False
         entity_name = ""
         # Loop to populate text with the web page (no tags)
-        for c in body:
+        for c in self.body:
             # Entity handling
             if in_entity:
                 if c == ';':
@@ -142,12 +142,31 @@ class HTMLParser:
         # End loop
         return self.finish()
     
-    def add_text():
-        pass
-    def add_tag():
-        pass
-    def finis():
-        pass
+    def add_text(self, text):
+        parent = self.unfinished[-1]
+        node = Text(text, parent)
+        parent.children.append(node)
+
+    def add_tag(self, tag):
+        if tag.startswith("/"):
+            if len(self.unfinished) == 1: 
+                return # Last tag finishes tree
+            node = self.unfinished.pop()
+            parent = self.unfinished[-1]
+            parent.children.append(node)
+        else:
+            parent = self.unfinished[-1] if self.unfinished else None # First tag has no parent
+            node = Element(tag, parent)
+            self.unfinished.append(node)
+
+    def finish(self):
+        if len(self.unfinished) == 0:
+            self.add_tag("html")
+        while len(self.unfinished) > 1:
+            node = self.unifinished.pop()
+            parent = self.unfinished[-1]
+            parent.children.append(node)
+        return self.unfinished.pop()
 
     
 
