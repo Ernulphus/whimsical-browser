@@ -42,9 +42,11 @@ class Browser:
         # self.canvas.create_oval(100, 100, 150, 150) # oval fits rectangle defined by points
         # self.canvas.create_text(200, 150, text="Welcome!") # Justify left by default
         headers, body = request(url)
-        self.tokens = lex(body)
-        self.display_list = Layout(self.tokens).display_list
-        self.draw()
+        nodes = HTMLParser(body).parse()
+        print_tree(nodes)
+        # self.tokens = HTMLParser(body).parse()
+        # self.display_list = Layout(self.tokens).display_list
+        # self.draw()
 
     def draw(self):
         self.canvas.delete("all")
@@ -79,17 +81,28 @@ class Text:
         self.text = text
         self.children = []
         self.parent = parent
+    
+    def __repr__(self):
+        return repr(self.text)
 
 class Element:
-    def __init__(self, tag, parent):
+    def __init__(self, tag, attributes, parent):
         self.tag = tag
         self.children = []
         self.parent = parent
+        self.attributes = attributes
+
+    def __repr__(self):
+        return "<" + self.tag + ">"
 
 class HTMLParser:
     def __init__(self, body):
         self.body = body
         self.unfinished = []
+        self.SELF_CLOSING_TAGS = [
+            "area", "base", "br", "col", "embed", "hr", "img", "input",
+            "link", "meta", "param", "source", "track", "wbr",
+        ]
 
     def parse(self):
         text = ''
@@ -142,28 +155,49 @@ class HTMLParser:
         # End loop
         return self.finish()
     
+    def get_attributes(self, text):
+        parts = text.split()
+        tag = parts[0].lower()
+        attributes = {}
+        for attrpair in parts[1:]:
+            if "=" in attrpair:
+                key, value = attrpair.split("=", 1)
+                if len(value) > 2 and value[0] in ["'", "\""]:
+                    value = value[1:-1] # Strip quotes from attribute value
+                attributes[key.lower()] = value
+            else:
+                attributes[attrpair.lower()] = ""
+        return tag, attributes
+
     def add_text(self, text):
+        if text.isspace(): return # Skip whitespace-only text nodes
         parent = self.unfinished[-1]
         node = Text(text, parent)
         parent.children.append(node)
 
     def add_tag(self, tag):
+        tag, attributes = self.get_attributes(tag)
+        if tag.startswith("!"): return # Get rid of doctype and comments
         if tag.startswith("/"):
             if len(self.unfinished) == 1: 
                 return # Last tag finishes tree
             node = self.unfinished.pop()
             parent = self.unfinished[-1]
             parent.children.append(node)
+        elif tag in self.SELF_CLOSING_TAGS:
+            parent = self.unfinished[-1]
+            node = Element(tag, attributes, parent)
+            parent.children.append(node)
         else:
             parent = self.unfinished[-1] if self.unfinished else None # First tag has no parent
-            node = Element(tag, parent)
+            node = Element(tag, attributes, parent)
             self.unfinished.append(node)
 
     def finish(self):
         if len(self.unfinished) == 0:
             self.add_tag("html")
         while len(self.unfinished) > 1:
-            node = self.unifinished.pop()
+            node = self.unfinished.pop()
             parent = self.unfinished[-1]
             parent.children.append(node)
         return self.unfinished.pop()
@@ -319,6 +353,11 @@ def get_font(size, weight, slant):
         font = tkinter.font.Font(size=size, weight=weight, slant=slant)
         FONTS[key] = font
     return FONTS[key]
+
+def print_tree(node, indent=0):
+    print(" " * indent, node)
+    for child in node.children:
+        print_tree(child, indent + 2)
 
 # If in main, load command line argument url
 if __name__ == '__main__':
