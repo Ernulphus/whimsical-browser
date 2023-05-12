@@ -42,11 +42,9 @@ class Browser:
         # self.canvas.create_oval(100, 100, 150, 150) # oval fits rectangle defined by points
         # self.canvas.create_text(200, 150, text="Welcome!") # Justify left by default
         headers, body = request(url)
-        nodes = HTMLParser(body).parse()
-        print_tree(nodes)
-        # self.tokens = HTMLParser(body).parse()
-        # self.display_list = Layout(self.tokens).display_list
-        # self.draw()
+        self.nodes = HTMLParser(body).parse()
+        self.display_list = Layout(self.nodes).display_list
+        self.draw()
 
     def draw(self):
         self.canvas.delete("all")
@@ -73,7 +71,7 @@ class Browser:
         global WIDTH, HEIGHT
         WIDTH, HEIGHT = e.width, e.height
         self.canvas.pack(fill='both', expand=True)
-        self.display_list = Layout(self.tokens).display_list
+        self.display_list = Layout(self.nodes).display_list
         self.draw()
 
 class Text:
@@ -200,9 +198,7 @@ class HTMLParser:
             node = self.unfinished.pop()
             parent = self.unfinished[-1]
             parent.children.append(node)
-        return self.unfinished.pop()
-
-    
+        return self.unfinished.pop() 
 
 def request (url):
     """Open a socket, send an HTTP request to url, and return head and body of response."""
@@ -285,32 +281,44 @@ class Layout:
         
         self.line = []
         self.display_list = []
-        for tok in tokens:
-            if isinstance(tok, Text):
-                self.text(tok)
-            else: 
-                self.tag(tok)
+        self.recurse(tokens)
+        # for tok in tokens:
+        #     if isinstance(tok, Text):
+        #         self.text(tok)
+        #     else: 
+        #         self.tag(tok)
         self.flush()
 
-    def tag(self, tok):
-        if tok.tag == "i": self.style = "italic"
-        elif tok.tag == "/i": self.style = "roman"
-        elif tok.tag == "b": self.weight = "bold"
-        elif tok.tag == "/b": self.weight = "normal"
-        elif tok.tag == "small": self.size -= 2
-        elif tok.tag == "/small": self.size += 2
-        elif tok.tag == "big": self.size += 4
-        elif tok.tag == "/big": self.size -= 4
-        elif tok.tag == "br" or tok.tag == "/br": self.flush()
-        elif tok.tag == "h1":
+    def recurse(self, tree):
+        if isinstance(tree, Text):
+            self.text(tree)
+        else:
+            self.open_tag(tree.tag)
+            for child in tree.children:
+                self.recurse(child)
+            self.close_tag(tree.tag)
+
+    def open_tag(self, tag):
+        if tag == "i": self.style = "italic"
+        elif tag == "b": self.weight = "bold"
+        elif tag == "small": self.size -= 2
+        elif tag == "big": self.size += 4
+        elif tag == "br": self.flush()
+        elif tag == "h1":
             self.size += 8
             self.weight = "bold"
-        elif tok.tag == "/h1":
+
+    def close_tag(self, tag):
+        if tag == "i": self.style = "roman"
+        elif tag == "b": self.weight = "normal"
+        elif tag == "small": self.size += 2
+        elif tag == "big": self.size -= 4
+        elif tag == "h1":
             self.size -= 8
             self.weight = "normal"
             self.flush()
             self.cursor_y += VSTEP # Small gap after header
-        elif tok.tag == "/p":
+        elif tag == "p":
             self.flush()
             self.cursor_y += VSTEP # Small gap btwn paragraphs
 
